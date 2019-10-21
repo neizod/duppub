@@ -4,7 +4,7 @@ import sys
 import csv
 import numpy as np
 from enum import IntEnum
-
+import argparse
 
 # OBSERVATION:
 # - not many duplicate more than 3 records...
@@ -99,19 +99,24 @@ def report(table, percent=80):
     for line in filter(lambda x: x[0] >= percent, reversed(sorted(output))):
         print(f'| {line[0]:>6.2f}% | {line[1]:<22} | {line[2]:<22} |')
 
+def parse_arguments():
+    """
+    Creates an argument parser, parses args, returns arguments.
+    """
+    parser = argparse.ArgumentParser(description='Duppub detects duplicate publications')
+    parser.add_argument('csv', type=str,  help='CSV file to process')
+    parser.add_argument('--threshold', type=int, default=80, help='Threshold percentage, as an integer.')
+    parser.add_argument('--limit_chars', type=int, default=100, help='String length limit to increase performance.')
+    parser.add_argument('--algorithm', type=str, default='levenshtein', help='The algorithm to use.')
 
+    args = parser.parse_args()
+    if not args.csv.endswith('.csv'):
+        raise IOError('File does not have .csv extension.')
+    return args
+        
 def main():
-    if len(sys.argv) == 1:
-        print('Please add a CSV file to detect duplications.')
-        raise IOError('no file')
-    if not sys.argv[1].endswith('.csv'):
-        print('File must be CSV.')
-        raise IOError('file not csv')
-    if len(sys.argv) >= 3:
-        print('Too many CSV files')
-        raise IOError('too many files')
-    filename = sys.argv[1]
-    process(filename)
+    config = parse_arguments()
+    process(config.csv)
 
 
 if __name__ == '__main__':
