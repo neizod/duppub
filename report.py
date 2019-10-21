@@ -94,8 +94,10 @@ def report(table, percent=80):
             if this_id > other_id:
                 continue
             output += [(similarity_rate, this_id, other_id)]
+    print('|  score  |          id-1          |          id-2          |')
+    print('|---------|------------------------|------------------------|')
     for line in filter(lambda x: x[0] >= percent, reversed(sorted(output))):
-        print(f'{line[1]} {line[2]}: {line[0]:.2f}%')
+        print(f'| {line[0]:>6.2f}% | {line[1]:<22} | {line[2]:<22} |')
 
 
 def main():
