@@ -2,6 +2,7 @@
 
 import sys
 import csv
+import numpy as np
 from enum import IntEnum
 
 
@@ -17,7 +18,28 @@ class Field(IntEnum):
     ABSTRACT = 4
 
 
-def edit_distant(this_str, other_str):
+def levenshtein_ratio(s, t):
+    rows = len(s)+1
+    cols = len(t)+1
+    distance = np.zeros((rows,cols),dtype = int)
+    for i in range(1, rows):
+        for k in range(1,cols):
+            distance[i][0] = i
+            distance[0][k] = k
+    for col in range(1, cols):
+        for row in range(1, rows):
+            if s[row-1] == t[col-1]:
+                cost = 0
+            else:
+                cost =2
+            distance[row][col] = min( distance[row-1][col] + 1,
+                                      distance[row][col-1] + 1,
+                                      distance[row-1][col-1] + cost )
+    ratio = ((len(s)+len(t)) - distance[row][col]) / (len(s)+len(t))
+    return 100 * ratio
+
+
+def edit_distant_ratio(this_str, other_str):
     if len(this_str) > len(other_str):
         this_str, other_str = other_str, this_str
     distant = list(range(1 + len(this_str)))
@@ -29,10 +51,10 @@ def edit_distant(this_str, other_str):
             else:
                 new_distant += [1 + min(distant[i1], distant[i1+1], new_distant[-1])]
         distant = new_distant
-    return distant[-1]
+    return 100 - (100 * distant[-1] / max(len(this_str), len(other_str)))
 
 
-def difference(this_row, other_row, limit_char=50):
+def difference(this_row, other_row, limit_char=100):
     if not limit_char:
         this_abstract = this_row[Field.ABSTRACT]
         other_abstract = other_row[Field.ABSTRACT]
@@ -42,8 +64,7 @@ def difference(this_row, other_row, limit_char=50):
     num_chars = max(len(this_abstract), len(other_abstract))
     if not num_chars:
         return 0
-    distant = edit_distant(this_abstract, other_abstract)
-    return 100 - (100 * distant / num_chars)
+    return levenshtein_ratio(this_abstract, other_abstract)
 
 
 def read_as_records(filename):
@@ -73,7 +94,7 @@ def report(table, percent=80):
             if this_id > other_id:
                 continue
             output += [(similarity_rate, this_id, other_id)]
-    for line in filter(lambda x: x[0] >= 80, reversed(sorted(output))):
+    for line in filter(lambda x: x[0] >= percent, reversed(sorted(output))):
         print(f'{line[1]} {line[2]}: {line[0]:.2f}%')
 
 
