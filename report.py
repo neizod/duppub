@@ -2,6 +2,7 @@
 
 import sys
 import csv
+import numpy as np
 from enum import IntEnum
 
 
@@ -16,6 +17,27 @@ class Field(IntEnum):
     YEAR     = 3
     ABSTRACT = 4
 
+def levenshtein_ratio_and_distance(s, t):
+
+    rows = len(s)+1
+    cols = len(t)+1
+    distance = np.zeros((rows,cols),dtype = int)
+
+    for i in range(1, rows):
+        for k in range(1,cols):
+            distance[i][0] = i
+            distance[0][k] = k
+
+    for col in range(1, cols):
+        for row in range(1, rows):
+            if s[row-1] == t[col-1]:
+                cost = 0
+            else:
+                cost =2
+
+            distance[row][col] = min(distance[row-1][col] + 1,distance[row][col-1] + 1,distance[row-1][col-1] + cost)
+    Ratio = ((len(s)+len(t)) - distance[row][col]) / (len(s)+len(t))
+    return Ratio*100
 
 def edit_distant(this_str, other_str):
     if len(this_str) > len(other_str):
@@ -60,7 +82,7 @@ def process(filename):
                 continue
             if this_id > other_id:
                 continue
-            table[this_id][other_id] = difference(this_row, other_row)
+            table[this_id][other_id] = levenshtein_ratio_and_distance(this_row, other_row)
     report(table)
 
 
@@ -73,7 +95,7 @@ def report(table, percent=80):
             if this_id > other_id:
                 continue
             output += [(similarity_rate, this_id, other_id)]
-    for line in filter(lambda x: x[0] >= 80, reversed(sorted(output))):
+    for line in filter(lambda x: x[0] >= 50, reversed(sorted(output))):
         print(f'{line[1]} {line[2]}: {line[0]:.2f}%')
 
 
