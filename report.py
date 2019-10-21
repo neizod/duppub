@@ -39,40 +39,40 @@ def levenshtein_ratio(s, t):
     return 100 * ratio
 
 
-def edit_distant_ratio(this_str, other_str):
+def edit_distance_ratio(this_str, other_str):
     if len(this_str) > len(other_str):
         this_str, other_str = other_str, this_str
-    distant = list(range(1 + len(this_str)))
+    distance = list(range(1 + len(this_str)))
     for i2, c2 in enumerate(other_str):
         new_distant = [i2 + 1]
         for i1, c1 in enumerate(this_str):
             if c1 == c2:
-                new_distant += [distant[i1]]
+                new_distant += [distance[i1]]
             else:
-                new_distant += [1 + min(distant[i1], distant[i1+1], new_distant[-1])]
-        distant = new_distant
-    return 100 - (100 * distant[-1] / max(len(this_str), len(other_str)))
+                new_distant += [1 + min(distance[i1], distance[i1+1], new_distant[-1])]
+        distance = new_distant
+    return 100 - (100 * distance[-1] / max(len(this_str), len(other_str)))
 
 
-def difference(this_row, other_row, limit_char=100):
-    if not limit_char:
+def difference(this_row, other_row, limit_chars=100, distance_algorithm=levenshtein_ratio):
+    if not limit_chars:
         this_abstract = this_row[Field.ABSTRACT]
         other_abstract = other_row[Field.ABSTRACT]
     else:
-        this_abstract = this_row[Field.ABSTRACT][:limit_char]
-        other_abstract = other_row[Field.ABSTRACT][:limit_char]
+        this_abstract = this_row[Field.ABSTRACT][:limit_chars]
+        other_abstract = other_row[Field.ABSTRACT][:limit_chars]
     num_chars = max(len(this_abstract), len(other_abstract))
     if not num_chars:
         return 0
-    return levenshtein_ratio(this_abstract, other_abstract)
+    return distance_algorithm(this_abstract, other_abstract)
 
 
 def read_as_records(filename):
     return {row[Field.ID]: row for row in csv.reader(open(filename))}
 
 
-def process(filename):
-    records = read_as_records(filename)
+def process(arguments):
+    records = read_as_records(arguments.csv)
     table = {this_id: {other_id: 0 for other_id in records} for this_id in records}
     for this_id, this_row in records.items():
         this_row[Field.ABSTRACT]
@@ -81,8 +81,10 @@ def process(filename):
                 continue
             if this_id > other_id:
                 continue
-            table[this_id][other_id] = difference(this_row, other_row)
-    report(table)
+            table[this_id][other_id] = difference( this_row, other_row,
+                                                   limit_chars=arguments.limit_chars,
+                                                   distance_algorithm=arguments.algorithm )
+    report(table, arguments.threshold)
 
 
 def report(table, percent=80):
@@ -99,24 +101,27 @@ def report(table, percent=80):
     for line in filter(lambda x: x[0] >= percent, reversed(sorted(output))):
         print(f'| {line[0]:>6.2f}% | {line[1]:<22} | {line[2]:<22} |')
 
+
 def parse_arguments():
-    """
-    Creates an argument parser, parses args, returns arguments.
-    """
-    parser = argparse.ArgumentParser(description='Duppub detects duplicate publications')
+    parser = argparse.ArgumentParser(description='DupPub detects duplicate publications')
     parser.add_argument('csv', type=str,  help='CSV file to process')
     parser.add_argument('--threshold', type=int, default=80, help='Threshold percentage, as an integer.')
     parser.add_argument('--limit_chars', type=int, default=100, help='String length limit to increase performance.')
     parser.add_argument('--algorithm', type=str, default='levenshtein', help='The algorithm to use.')
+    arguments = parser.parse_args()
+    if not 0 <= arguments.threshold <= 100:
+        parser.error('THRESHOLD not in range 0% to 100%')
+    if arguments.algorithm == 'levenshtein':
+        arguments.algorithm = levenshtein_ratio
+    elif arguments.algorithm == 'edit_distance':
+        arguments.algorithm = edit_distance_ratio
+    else:
+        parser.error('ALGORITHM not exists')
+    return arguments
 
-    args = parser.parse_args()
-    if not args.csv.endswith('.csv'):
-        raise IOError('File does not have .csv extension.')
-    return args
-        
+
 def main():
-    config = parse_arguments()
-    process(config.csv)
+    process(parse_arguments())
 
 
 if __name__ == '__main__':
