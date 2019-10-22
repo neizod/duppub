@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
-import csv
-import numpy as np
-from enum import IntEnum
 import argparse
+import csv
+import math
+import re
+from collections import Counter
+from enum import IntEnum
+
+import numpy as np
+
 
 # OBSERVATION:
 # - not many duplicate more than 3 records...
@@ -52,6 +56,36 @@ def edit_distance_ratio(this_str, other_str):
                 new_distant += [1 + min(distance[i1], distance[i1+1], new_distant[-1])]
         distance = new_distant
     return 100 - (100 * distance[-1] / max(len(this_str), len(other_str)))
+
+
+def cosine_similarity_ratio(this_str: str, other_str: str) -> float:
+    """
+    calculate cosine similarity between two strings
+    :param this_str:
+    :param other_str:
+    :return:
+    """
+    def get_cosine(vec1: Counter, vec2: Counter) ->float:
+        """
+        calculate cosine similarity
+        :param vec1:
+        :param vec2:
+        :return:
+        """
+        numerator = sum([vec1[x] * vec2[x] for x in set(vec1.keys() & vec2.keys())])
+        denominator = math.sqrt(sum([vec1[x]**2 for x in vec1.keys()])) * math.sqrt(sum([vec2[x]**2 for x in vec2.keys()]))
+
+        return float(numerator) / denominator if denominator else 0.0
+
+    def text_to_vector(text):
+        """
+        change text to vector(BOW)
+        :param text:
+        :return:
+        """
+        return Counter(re.compile(r'\w+').findall(text))
+
+    return 100 * get_cosine(text_to_vector(this_str), text_to_vector(other_str))
 
 
 def difference(this_row, other_row, limit_chars=100, distance_algorithm=levenshtein_ratio):
@@ -103,6 +137,11 @@ def report(table, percent=80):
 
 
 def parse_arguments():
+    algorithms = {
+        'levenshtein': levenshtein_ratio,
+        'edit_distance': edit_distance_ratio,
+        'cosine_distance': cosine_similarity_ratio
+    }
     parser = argparse.ArgumentParser(description='DupPub detects duplicate publications')
     parser.add_argument('csv', type=str,  help='CSV file to process')
     parser.add_argument('--threshold', type=int, default=80, help='Threshold percentage, as an integer.')
@@ -111,10 +150,8 @@ def parse_arguments():
     arguments = parser.parse_args()
     if not 0 <= arguments.threshold <= 100:
         parser.error('THRESHOLD not in range 0% to 100%')
-    if arguments.algorithm == 'levenshtein':
-        arguments.algorithm = levenshtein_ratio
-    elif arguments.algorithm == 'edit_distance':
-        arguments.algorithm = edit_distance_ratio
+    if arguments.algorithm in algorithms.keys():
+        arguments.algorithm = algorithms[arguments.algorithm]
     else:
         parser.error('ALGORITHM not exists')
     return arguments
