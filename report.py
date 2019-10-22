@@ -13,9 +13,9 @@ Arguments:
 Options:
   -h --help                show this help message and exit
   -v, --version            show version and exit
-  -t, --threshold N        Threshold percentage, as an integer [default: 80]
-  -l, --limit_chars N      String length limit to increase performance, as an integer [default: 100]
-  --algorithm S            Algorithm, as a string [default: levenshtein edit_distance cosine_similarity]
+  -t, --threshold N        Reporting threshold percentage, as an integer [default: 80]
+  -l, --limit_chars N      String length limit. Decrease number to increase performance and degrade accuracy, as an integer [default: 100]
+  --algorithm S            Algorithms: levenshtein, edit_distance, cosine_similarity, as a string [default: levenshtein]
 
 Try:
   ./report.py publications.csv
@@ -50,10 +50,8 @@ def levenshtein_ratio(s, t):
     rows = len(s) + 1
     cols = len(t) + 1
     distance = np.zeros((rows, cols), dtype=int)
-    for i in range(1, rows):
-        for k in range(1, cols):
-            distance[i][0] = i
-            distance[0][k] = k
+    distance[0, :] = np.arange(1, cols + 1)
+    distance[:, 0] = np.arange(1, rows + 1)
     for col in range(1, cols):
         for row in range(1, rows):
             if s[row - 1] == t[col - 1]:
@@ -201,8 +199,7 @@ def parse_arguments():
         arguments.limit_chars = int(arguments.limit_chars)
         assert arguments.threshold <= 100 and arguments.threshold > 0
         assert arguments.algorithm in algorithms.keys()
-    except Exception as e:
-        print(e)
+    except Exception:
         raise ValueError("Invalid arguments either out of range or not found in list.")
     arguments.algorithm = algorithms[arguments.algorithm]
     return arguments
