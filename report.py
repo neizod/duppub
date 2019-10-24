@@ -173,10 +173,7 @@ class Struct:
         self.__dict__.update(entries)
 
 
-def parse_arguments():
-    """Parse input arguments."""
-    inputs = docopt(__doc__, version='0.0.1')
-
+def parse_arguments(inputs):
     # Implemented Algorithms
     algorithms = {
         'levenshtein': levenshtein_ratio,
@@ -206,7 +203,10 @@ def parse_arguments():
 
 
 def main():
-    process(parse_arguments())
+    """Parse input arguments."""
+    inputs = docopt(__doc__, version='0.0.1')
+
+    process(parse_arguments(inputs))
 
 
 if __name__ == '__main__':
