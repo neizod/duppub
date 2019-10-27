@@ -64,7 +64,7 @@ def levenshtein_ratio(s, t):
             distance[row][col] = min(distance[row - 1][col] + 1,
                                      distance[row][col - 1] + 1,
                                      distance[row - 1][col - 1] + cost)
-    ratio = ((len(s) + len(t)) - distance[len(s)][len(t)]) / (len(s) + len(t))
+    ratio = ((len(s) + len(t)) - distance[-1][-1]) / (len(s) + len(t))
     return 100 * ratio
 
 
