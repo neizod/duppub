@@ -47,21 +47,24 @@ class Field(IntEnum):
 
 
 def levenshtein_ratio(s, t):
+    if not len(s) and not len(t):
+        return 100.0
+
     rows = len(s) + 1
     cols = len(t) + 1
     distance = np.zeros((rows, cols), dtype=int)
-    distance[0, :] = np.arange(1, cols + 1)
-    distance[:, 0] = np.arange(1, rows + 1)
+    distance[0, :] = np.arange(0, cols)
+    distance[:, 0] = np.arange(0, rows)
     for col in range(1, cols):
         for row in range(1, rows):
             if s[row - 1] == t[col - 1]:
                 cost = 0
             else:
-                cost = 2
+                cost = 1
             distance[row][col] = min(distance[row - 1][col] + 1,
                                      distance[row][col - 1] + 1,
                                      distance[row - 1][col - 1] + cost)
-    ratio = ((len(s) + len(t)) - distance[row][col]) / (len(s) + len(t))
+    ratio = ((len(s) + len(t)) - distance[-1][-1]) / (len(s) + len(t))
     return 100 * ratio
 
 
